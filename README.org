@@ -1,0 +1,6 @@
+#+TITLE: Learning Rust By Doing Advent of Code 2022!
+
+I'm trying to learn Rust, so I figured doing [[https://adventofcode.com/2022][Advent of Code 2022]] would be a
+decent way of doing it!
+
+Each day will be it's own branch, with the most recent day as the main branch.
