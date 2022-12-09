@@ -1,85 +1,118 @@
-pub struct ElfCollection {
-    elves: Vec<Elf>,
+/*
+Elf:
+A -> Rock
+B -> Paper
+C -> Scissor
+
+Me:
+X -> Rock
+Y -> Paper
+Z -> Scissor
+
+Points:
+Rock    -> 1
+Paper   -> 2
+Scissor -> 3
+
+Lose -> 0
+Draw -> 3
+Win  -> 6
+*/
+
+pub struct RockPaperScissor {
+    score: i32,
+}
+
+#[derive(PartialEq, Debug)]
+enum Hand {
+    Rock,
+    Paper,
+    Scissor,
 }
 
 struct Elf {
-    carrying: Vec<u32>,
-    total: u32,
+    play: Hand,
 }
 
-impl ElfCollection {
-    pub fn new() -> ElfCollection {
-        ElfCollection {
-            elves: vec![Elf::new()],
-        }
-    }
+struct Me {
+    play: Hand,
+}
 
-    pub fn add(&mut self, input: &str) {
-        if input == "" {
-            self.elves.push(Elf::new());
-            return;
-        }
+trait Player {
+    fn result_against<T: Player>(&self, other: T) -> Game;
+}
 
-        if let Ok(val) = input.parse::<u32>() {
-            if let Some(elf) = self.elves.last_mut() {
-                elf.push(val);
-            }
-        }
-    }
-
-    pub fn totals(&self) -> Vec<u32> {
-        let mut totals: Vec<u32> = Vec::new();
-
-        for elf in &self.elves {
-            totals.push(elf.total());
-        }
-
-        totals
-    }
-
-    pub fn biggest(&self) -> u32 {
-        let totals = self.totals();
-        let mut largest = 0;
-
-        for t in totals {
-            if t > largest {
-                largest = t;
-            }
-        }
-
-        largest
-    }
-
-    pub fn top_three(&self) -> Vec<u32> {
-        let mut totals = self.totals();
-        totals.sort();
-
-        let mut vals = Vec::new();
-        for _ in 1..=3 {
-            if let Some(val) = totals.pop() {
-                vals.push(val);
-            }
-        }
-
-        vals
+impl Player for Elf {
+    fn result_against<Me>(&self, other: Me) -> Game {
+        Game::Draw
     }
 }
 
-impl Elf {
-    fn new() -> Elf {
-        Elf {
-            carrying: Vec::new(),
-            total: 0,
-        }
+impl Player for Me {
+    fn result_against<Elf>(&self, other: Elf) -> Game {
+        Game::Draw
+    }
+}
+
+#[derive(PartialEq, Debug)]
+enum Game {
+    Draw,
+    Win,
+    Loss,
+}
+
+impl RockPaperScissor {
+    pub fn new() -> RockPaperScissor {
+        RockPaperScissor { score: 0 }
     }
 
-    fn push(&mut self, val: u32) {
-        self.carrying.push(val);
-        self.total = self.carrying.iter().sum();
+    pub fn add(&mut self, line: &str) {
+        let parts = line.split(" ").collect::<Vec<&str>>();
+        let outcome_points = match parts[0] {
+            "A" => {
+                // elf plays Rock
+                match parts[1] {
+                    "X" => 3, // i play rock
+                    "Y" => 6, // i play paper
+                    "Z" => 0, // i play scissors
+                    _ => -1,  // undefined
+                }
+            }
+            "B" => {
+                // elf plays Paper
+                match parts[1] {
+                    "X" => 0, // i play rock
+                    "Y" => 3, // i play paper
+                    "Z" => 6, // i play scissors
+                    _ => -1,  // undefined
+                }
+            }
+            "C" => {
+                // elf plays Scissors
+                match parts[1] {
+                    "X" => 6, // i play rock
+                    "Y" => 0, // i play paper
+                    "Z" => 3, // i play scissors
+                    _ => -1,  // undefined
+                }
+            }
+            _ => -1, // undefined
+        };
+        let play_points = match parts[1] {
+            "X" => 1, // i play rock
+            "Y" => 2, // i play paper
+            "Z" => 3, // i play scissors
+            _ => -1,  //undefined
+        };
+        println!("parts.0 => {}", parts[0]);
+        println!("parts.1 => {}", parts[1]);
+        println!("outcome points: {outcome_points}");
+        println!("play points: {play_points}");
+        self.score += outcome_points + play_points;
     }
 
-    fn total(&self) -> u32 {
-        self.total
+    pub fn score(&self) -> i32 {
+        self.score
     }
 }
 
@@ -88,44 +121,42 @@ mod tests {
     use super::*;
 
     #[test]
-    fn add_items_to_elves() {
-        let items = vec!["100", "200", "", "400", "", "500", "600"];
-        let mut ec = ElfCollection::new();
-
-        for i in items {
-            ec.add(i);
-        }
-
-        let got = ec.totals();
-
-        assert_eq!(vec![300, 400, 1100], got);
+    fn check_something() {
+        let p = Me { play: Hand::Rock };
+        let u = Me { play: Hand::Rock };
+        let result = p.result_against(u);
+        assert_eq!(Game::Draw, result)
     }
 
     #[test]
-    fn get_biggest_total() {
-        let items = vec!["100", "200", "", "400", "", "500", "600"];
-        let mut ec = ElfCollection::new();
-
-        for i in items {
-            ec.add(i);
-        }
-
-        assert_eq!(1100, ec.biggest());
+    fn no_lines_added_has_zero_score() {
+        let game = RockPaperScissor::new();
+        assert_eq!(0, game.score());
     }
 
     #[test]
-    fn get_top_three() {
-        let items = vec![
-            "100", "200", "", "400", "", "500", "600", "", "800", "800", "", "900", "1000",
-        ];
-        let mut ec = ElfCollection::new();
+    fn example_calculated_properly() {
+        let input = vec!["A Y", "B X", "C Z"];
+        let mut game = RockPaperScissor::new();
 
-        for i in items {
-            ec.add(i);
+        for line in input {
+            game.add(line);
         }
 
-        // elves: [300, 400, 1100, 1600, 1900]
-        // top three: 1100, 1600, 1900
-        assert_eq!(vec![1900, 1600, 1100], ec.top_three());
+        assert_eq!(15, game.score());
+    }
+
+    #[test]
+    fn another_input_calculates_proerly() {
+        let mut game = RockPaperScissor::new();
+
+        game.add("B Z");
+        assert_eq!(9, game.score());
+
+        game.add("A Y");
+        assert_eq!(17, game.score());
+
+        game.add("B X");
+        assert_eq!(18, game.score());
     }
 }
