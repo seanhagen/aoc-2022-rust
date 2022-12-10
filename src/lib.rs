@@ -46,6 +46,26 @@ impl Hand {
         }
     }
 
+    fn parse_outcome(elf: &Hand, me: &str) -> Hand {
+        match elf {
+            Hand::Rock => match me {
+                "X" => Hand::Scissor,
+                "Y" => Hand::Rock,
+                _ => Hand::Paper,
+            },
+            Hand::Paper => match me {
+                "X" => Hand::Rock,
+                "Y" => Hand::Paper,
+                _ => Hand::Scissor,
+            },
+            Hand::Scissor => match me {
+                "X" => Hand::Paper,
+                "Y" => Hand::Scissor,
+                _ => Hand::Rock,
+            },
+        }
+    }
+
     fn points(&self) -> i32 {
         match self {
             Hand::Rock => POINTS_ROCK,
@@ -82,6 +102,31 @@ enum Game {
     Loss(i32),
 }
 
+impl Game {
+    fn parse(elf: &str, me: &str) -> Game {
+        let elf = Hand::parse(elf);
+        let me = Hand::parse_outcome(&elf, me);
+
+        match elf {
+            Hand::Rock => match me {
+                Hand::Rock => Game::Draw(POINTS_DRAW + me.points()),
+                Hand::Paper => Game::Win(POINTS_WIN + me.points()),
+                Hand::Scissor => Game::Loss(POINTS_LOSE + me.points()),
+            },
+            Hand::Paper => match me {
+                Hand::Paper => Game::Draw(POINTS_DRAW + me.points()),
+                Hand::Scissor => Game::Win(POINTS_WIN + me.points()),
+                Hand::Rock => Game::Loss(POINTS_LOSE + me.points()),
+            },
+            Hand::Scissor => match me {
+                Hand::Scissor => Game::Draw(POINTS_DRAW + me.points()),
+                Hand::Rock => Game::Win(POINTS_WIN + me.points()),
+                Hand::Paper => Game::Loss(POINTS_LOSE + me.points()),
+            },
+        }
+    }
+}
+
 struct Elf {
     play: Hand,
 }
@@ -115,6 +160,24 @@ impl RockPaperScissor {
         self.score
     }
 
+    pub fn add_correct(&mut self, line: &str) {
+        let parts = line.split(" ").collect::<Vec<&str>>();
+
+        let elf = Elf {
+            play: Hand::parse(parts[0]),
+        };
+
+        let player = Me {
+            play: Hand::parse_outcome(&elf.play, parts[1]),
+        };
+
+        self.score += match player.result_against(elf) {
+            Game::Draw(points) => points,
+            Game::Win(points) => points,
+            Game::Loss(points) => points,
+        }
+    }
+
     pub fn add(&mut self, line: &str) {
         let parts = line.split(" ").collect::<Vec<&str>>();
 
@@ -130,52 +193,6 @@ impl RockPaperScissor {
             Game::Win(points) => points,
             Game::Loss(points) => points,
         }
-
-        // let outcome_points = match parts[0] {
-        //     "A" => {
-        //         // elf plays Rock
-        //         match parts[1] {
-        //             "X" => 3, // i play rock
-        //             "Y" => 6, // i play paper
-        //             "Z" => 0, // i play scissors
-        //             _ => -1,  // undefined
-        //         }
-        //     }
-        //     "B" => {
-        //         // elf plays Paper
-        //         match parts[1] {
-        //             "X" => 0, // i play rock
-        //             "Y" => 3, // i play paper
-        //             "Z" => 6, // i play scissors
-        //             _ => -1,  // undefined
-        //         }
-        //     }
-        //     "C" => {
-        //         // elf plays Scissors
-        //         match parts[1] {
-        //             "X" => 6, // i play rock
-        //             "Y" => 0, // i play paper
-        //             "Z" => 3, // i play scissors
-        //             _ => -1,  // undefined
-        //         }
-        //     }
-        //     _ => -1, // undefined
-        // };
-        // let play_points = match parts[1] {
-        //     "X" => 1, // i play rock
-        //     "Y" => 2, // i play paper
-        //     "Z" => 3, // i play scissors
-        //     _ => -1,  //undefined
-        // };
-        // println!("parts.0 => {}", parts[0]);
-        // println!("parts.1 => {}", parts[1]);
-        // println!("outcome points: {outcome_points}");
-        // println!("play points: {play_points}");
-        // self.score += outcome_points + play_points;
-    }
-
-    pub fn score(&self) -> i32 {
-        self.score
     }
 }
 
@@ -276,5 +293,46 @@ mod tests {
 
         game.add("B X");
         assert_eq!(18, game.score());
+    }
+
+    #[test]
+    fn day_two_calculated_properly() {
+        let input = vec!["A Y", "B X", "C Z"];
+        let mut game = RockPaperScissor::new();
+
+        for line in input {
+            game.add_correct(line);
+        }
+
+        assert_eq!(12, game.score());
+    }
+
+    #[test]
+    fn day_two_parse_input() {
+        assert_eq!(Game::Draw(4), Game::parse("A", "Y"));
+        assert_eq!(Game::Loss(1), Game::parse("B", "X"));
+        assert_eq!(Game::Win(7), Game::parse("C", "Z"));
+    }
+
+    #[test]
+    fn day_two_parse_outcome() {
+        // X -> i lose
+        // Y -> draw
+        // Z -> i win
+
+        let elf = Hand::Rock;
+        assert_eq!(Hand::Scissor, Hand::parse_outcome(&elf, "X"));
+        assert_eq!(Hand::Rock, Hand::parse_outcome(&elf, "Y"));
+        assert_eq!(Hand::Paper, Hand::parse_outcome(&elf, "Z"));
+
+        let elf = Hand::Paper;
+        assert_eq!(Hand::Rock, Hand::parse_outcome(&elf, "X"));
+        assert_eq!(Hand::Paper, Hand::parse_outcome(&elf, "Y"));
+        assert_eq!(Hand::Scissor, Hand::parse_outcome(&elf, "Z"));
+
+        let elf = Hand::Scissor;
+        assert_eq!(Hand::Paper, Hand::parse_outcome(&elf, "X"));
+        assert_eq!(Hand::Scissor, Hand::parse_outcome(&elf, "Y"));
+        assert_eq!(Hand::Rock, Hand::parse_outcome(&elf, "Z"));
     }
 }
