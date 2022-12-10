@@ -1,199 +1,70 @@
-/*
-Elf:
-A -> Rock
-B -> Paper
-C -> Scissor
+use std::{str, u32};
 
-Me:
-X -> Rock
-Y -> Paper
-Z -> Scissor
+fn split_line(input: &str) -> Vec<String> {
+    let len = input.len();
+    let midpoint = len / 2;
+    let parts = input.split("").collect::<Vec<&str>>();
+    let mut output: Vec<String> = Vec::new();
+    let mut tmp = String::from("");
 
-Points:
-Rock    -> 1
-Paper   -> 2
-Scissor -> 3
-
-Lose -> 0
-Draw -> 3
-Win  -> 6
- */
-
-const POINTS_ROCK: i32 = 1;
-const POINTS_PAPER: i32 = 2;
-const POINTS_SCISSOR: i32 = 3;
-
-const POINTS_LOSE: i32 = 0;
-const POINTS_DRAW: i32 = 3;
-const POINTS_WIN: i32 = 6;
-
-#[derive(PartialEq, Debug)]
-enum Hand {
-    Rock,
-    Paper,
-    Scissor,
-}
-
-impl Hand {
-    fn parse(input: &str) -> Hand {
-        match input {
-            "A" => Hand::Rock,
-            "X" => Hand::Rock,
-            "B" => Hand::Paper,
-            "Y" => Hand::Paper,
-            "C" => Hand::Scissor,
-            _ => Hand::Scissor,
+    parts.iter().enumerate().for_each(|(idx, chr)| {
+        let chr = chr.to_string();
+        if chr == "" {
+            return;
         }
-    }
+        tmp = format!("{}{}", tmp, chr);
 
-    fn parse_outcome(elf: &Hand, me: &str) -> Hand {
-        match elf {
-            Hand::Rock => match me {
-                "X" => Hand::Scissor,
-                "Y" => Hand::Rock,
-                _ => Hand::Paper,
-            },
-            Hand::Paper => match me {
-                "X" => Hand::Rock,
-                "Y" => Hand::Paper,
-                _ => Hand::Scissor,
-            },
-            Hand::Scissor => match me {
-                "X" => Hand::Paper,
-                "Y" => Hand::Scissor,
-                _ => Hand::Rock,
-            },
+        if idx == midpoint {
+            output.push(tmp.clone());
+            tmp = String::from("");
         }
-    }
+    });
+    output.push(tmp);
+    output
+}
 
-    fn points(&self) -> i32 {
-        match self {
-            Hand::Rock => POINTS_ROCK,
-            Hand::Paper => POINTS_PAPER,
-            Hand::Scissor => POINTS_SCISSOR,
+fn identify_common(input: Vec<&str>) -> Result<Vec<&str>, &str> {
+    if input.len() != 2 {
+        return Err("input must be vector with two parts");
+    }
+    if input[0].len() != input[1].len() {
+        return Err("the two elements in the vector must be the same length");
+    }
+    let part1 = input[0].split("").collect::<Vec<&str>>();
+    let part2 = input[1].split("").collect::<Vec<&str>>();
+    let mut in_both: Vec<&str> = Vec::new();
+
+    part1.iter().enumerate().for_each(|(idx, chr)| {
+        let a = chr.to_string();
+        if a == "" {
+            return;
         }
-    }
 
-    fn points_vs(&self, other: Hand) -> Game {
-        match self {
-            Hand::Rock => match other {
-                Hand::Rock => Game::Draw(POINTS_DRAW + self.points()),
-                Hand::Scissor => Game::Win(POINTS_WIN + self.points()),
-                _ => Game::Loss(POINTS_LOSE + self.points()),
-            },
-            Hand::Paper => match other {
-                Hand::Paper => Game::Draw(POINTS_DRAW + self.points()),
-                Hand::Rock => Game::Win(POINTS_WIN + self.points()),
-                _ => Game::Loss(POINTS_LOSE + self.points()),
-            },
-            _ => match other {
-                Hand::Scissor => Game::Draw(POINTS_DRAW + self.points()),
-                Hand::Paper => Game::Win(POINTS_WIN + self.points()),
-                _ => Game::Loss(POINTS_LOSE + self.points()),
-            },
-        }
-    }
+        part2.iter().enumerate().for_each(|(idx2, chr2)| {
+            let b = chr2.to_string();
+
+            if a == b {
+                in_both.push(chr);
+            }
+        })
+    });
+    in_both.sort();
+    in_both.dedup();
+    Ok(in_both)
 }
 
-#[derive(PartialEq, Debug)]
-enum Game {
-    Draw(i32),
-    Win(i32),
-    Loss(i32),
-}
+const CHARS: &str = "-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-impl Game {
-    fn parse(elf: &str, me: &str) -> Game {
-        let elf = Hand::parse(elf);
-        let me = Hand::parse_outcome(&elf, me);
-
-        match elf {
-            Hand::Rock => match me {
-                Hand::Rock => Game::Draw(POINTS_DRAW + me.points()),
-                Hand::Paper => Game::Win(POINTS_WIN + me.points()),
-                Hand::Scissor => Game::Loss(POINTS_LOSE + me.points()),
-            },
-            Hand::Paper => match me {
-                Hand::Paper => Game::Draw(POINTS_DRAW + me.points()),
-                Hand::Scissor => Game::Win(POINTS_WIN + me.points()),
-                Hand::Rock => Game::Loss(POINTS_LOSE + me.points()),
-            },
-            Hand::Scissor => match me {
-                Hand::Scissor => Game::Draw(POINTS_DRAW + me.points()),
-                Hand::Rock => Game::Win(POINTS_WIN + me.points()),
-                Hand::Paper => Game::Loss(POINTS_LOSE + me.points()),
-            },
-        }
+fn get_priority(input: &str) -> u32 {
+    if let Some(idx) = CHARS.find(input) {
+        idx as u32
+    } else {
+        0
     }
 }
 
-struct Elf {
-    play: Hand,
-}
-
-struct Me {
-    play: Hand,
-}
-
-trait Player {
-    type Opponent;
-    fn result_against(&self, other: Self::Opponent) -> Game;
-}
-
-impl Player for Me {
-    type Opponent = Elf;
-    fn result_against(&self, other: Self::Opponent) -> Game {
-        self.play.points_vs(other.play)
-    }
-}
-
-pub struct RockPaperScissor {
-    score: i32,
-}
-
-impl RockPaperScissor {
-    pub fn new() -> RockPaperScissor {
-        RockPaperScissor { score: 0 }
-    }
-
-    pub fn score(&self) -> i32 {
-        self.score
-    }
-
-    pub fn add_correct(&mut self, line: &str) {
-        let parts = line.split(" ").collect::<Vec<&str>>();
-
-        let elf = Elf {
-            play: Hand::parse(parts[0]),
-        };
-
-        let player = Me {
-            play: Hand::parse_outcome(&elf.play, parts[1]),
-        };
-
-        self.score += match player.result_against(elf) {
-            Game::Draw(points) => points,
-            Game::Win(points) => points,
-            Game::Loss(points) => points,
-        }
-    }
-
-    pub fn add(&mut self, line: &str) {
-        let parts = line.split(" ").collect::<Vec<&str>>();
-
-        let elf = Elf {
-            play: Hand::parse(parts[0]),
-        };
-        let player = Me {
-            play: Hand::parse(parts[1]),
-        };
-
-        self.score += match player.result_against(elf) {
-            Game::Draw(points) => points,
-            Game::Win(points) => points,
-            Game::Loss(points) => points,
-        }
-    }
+fn get_summed_priority(input: Vec<&str>) -> u32 {
+    0
 }
 
 #[cfg(test)]
@@ -201,138 +72,88 @@ mod tests {
     use super::*;
 
     #[test]
-    fn correct_hand_points() {
-        let h = Hand::Rock;
-        assert_eq!(1, h.points());
+    fn split_line_properly() {
+        /*
+        The first rucksack contains the items vJrwpWtwJgWrhcsFMMfFFhFp, which
+        means its first compartment contains the items vJrwpWtwJgWr, while the
+        second compartment contains the items hcsFMMfFFhFp. The only item type
+        that appears in both compartments is lowercase p.
+                 */
+        assert_eq!(
+            vec!["vJrwpWtwJgWr", "hcsFMMfFFhFp"],
+            split_line("vJrwpWtwJgWrhcsFMMfFFhFp")
+        );
 
-        let h = Hand::Paper;
-        assert_eq!(2, h.points());
+        /*
+        The second rucksack's compartments contain jqHRNqRjqzjGDLGL
+        and rsFMfFZSrLrFZsSL. The only item type that appears in both
+        compartments is uppercase L.
+         */
+        assert_eq!(
+            vec!["jqHRNqRjqzjGDLGL", "rsFMfFZSrLrFZsSL"],
+            split_line("jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL")
+        );
 
-        let h = Hand::Scissor;
-        assert_eq!(3, h.points());
+        /*
+        The third rucksack's compartments contain PmmdzqPrV and
+        vPwwTWBwg; the only common item type is uppercase P.
+         */
+
+        assert_eq!(
+            vec!["PmmdzqPrV", "vPwwTWBwg"],
+            split_line("PmmdzqPrVvPwwTWBwg")
+        );
     }
 
     #[test]
-    fn correct_game_results() {
-        let m = Me { play: Hand::Rock };
-        let e = Elf { play: Hand::Rock };
-        assert_eq!(Game::Draw(4), m.result_against(e));
+    fn identify_common_works() {
+        assert_eq!(
+            Err("input must be vector with two parts"),
+            identify_common(vec!["abc"])
+        );
 
-        let e = Elf { play: Hand::Paper };
-        assert_eq!(Game::Loss(1), m.result_against(e));
-
-        let e = Elf {
-            play: Hand::Scissor,
-        };
-        assert_eq!(Game::Win(7), m.result_against(e));
-
-        let m = Me { play: Hand::Paper };
-        let e = Elf { play: Hand::Paper };
-        assert_eq!(Game::Draw(5), m.result_against(e));
-
-        let e = Elf { play: Hand::Rock };
-        assert_eq!(Game::Win(8), m.result_against(e));
-
-        let e = Elf {
-            play: Hand::Scissor,
-        };
-        assert_eq!(Game::Loss(2), m.result_against(e));
-
-        let m = Me {
-            play: Hand::Scissor,
-        };
-        let e = Elf {
-            play: Hand::Scissor,
-        };
-        assert_eq!(Game::Draw(6), m.result_against(e));
-
-        let e = Elf { play: Hand::Rock };
-        assert_eq!(Game::Loss(3), m.result_against(e));
-
-        let e = Elf { play: Hand::Paper };
-        assert_eq!(Game::Win(9), m.result_against(e));
+        assert_eq!(
+            Err("the two elements in the vector must be the same length"),
+            identify_common(vec!["abc", "abcde"])
+        );
+        assert_eq!(
+            Ok(vec!["p"]),
+            identify_common(vec!["vJrwpWtwJgWr", "hcsFMMfFFhFp"])
+        );
+        assert_eq!(
+            Ok(vec!["L"]),
+            identify_common(vec!["jqHRNqRjqzjGDLGL", "rsFMfFZSrLrFZsSL"])
+        );
+        assert_eq!(
+            Ok(vec!["P"]),
+            identify_common(vec!["PmmdzqPrV", "vPwwTWBwg"])
+        );
     }
 
     #[test]
-    fn no_lines_added_has_zero_score() {
-        let game = RockPaperScissor::new();
-        assert_eq!(0, game.score());
+    fn get_priority_works() {
+        assert_eq!(1, get_priority("a"));
+        assert_eq!(52, get_priority("Z"));
+        assert_eq!(16, get_priority("p"));
+        assert_eq!(38, get_priority("L"));
+        assert_eq!(42, get_priority("P"));
+        assert_eq!(22, get_priority("v"));
+        assert_eq!(20, get_priority("t"));
+        assert_eq!(19, get_priority("s"));
     }
 
     #[test]
-    fn parse_hand_str() {
-        assert_eq!(Hand::Rock, Hand::parse("A"));
-        assert_eq!(Hand::Rock, Hand::parse("X"));
-        assert_eq!(Hand::Paper, Hand::parse("B"));
-        assert_eq!(Hand::Paper, Hand::parse("Y"));
-        assert_eq!(Hand::Scissor, Hand::parse("C"));
-        assert_eq!(Hand::Scissor, Hand::parse("Z"));
-    }
-
-    #[test]
-    fn example_calculated_properly() {
-        let input = vec!["A Y", "B X", "C Z"];
-        let mut game = RockPaperScissor::new();
-
-        for line in input {
-            game.add(line);
-        }
-
-        assert_eq!(15, game.score());
-    }
-
-    #[test]
-    fn another_input_calculates_proerly() {
-        let mut game = RockPaperScissor::new();
-
-        game.add("B Z");
-        assert_eq!(9, game.score());
-
-        game.add("A Y");
-        assert_eq!(17, game.score());
-
-        game.add("B X");
-        assert_eq!(18, game.score());
-    }
-
-    #[test]
-    fn day_two_calculated_properly() {
-        let input = vec!["A Y", "B X", "C Z"];
-        let mut game = RockPaperScissor::new();
-
-        for line in input {
-            game.add_correct(line);
-        }
-
-        assert_eq!(12, game.score());
-    }
-
-    #[test]
-    fn day_two_parse_input() {
-        assert_eq!(Game::Draw(4), Game::parse("A", "Y"));
-        assert_eq!(Game::Loss(1), Game::parse("B", "X"));
-        assert_eq!(Game::Win(7), Game::parse("C", "Z"));
-    }
-
-    #[test]
-    fn day_two_parse_outcome() {
-        // X -> i lose
-        // Y -> draw
-        // Z -> i win
-
-        let elf = Hand::Rock;
-        assert_eq!(Hand::Scissor, Hand::parse_outcome(&elf, "X"));
-        assert_eq!(Hand::Rock, Hand::parse_outcome(&elf, "Y"));
-        assert_eq!(Hand::Paper, Hand::parse_outcome(&elf, "Z"));
-
-        let elf = Hand::Paper;
-        assert_eq!(Hand::Rock, Hand::parse_outcome(&elf, "X"));
-        assert_eq!(Hand::Paper, Hand::parse_outcome(&elf, "Y"));
-        assert_eq!(Hand::Scissor, Hand::parse_outcome(&elf, "Z"));
-
-        let elf = Hand::Scissor;
-        assert_eq!(Hand::Paper, Hand::parse_outcome(&elf, "X"));
-        assert_eq!(Hand::Scissor, Hand::parse_outcome(&elf, "Y"));
-        assert_eq!(Hand::Rock, Hand::parse_outcome(&elf, "Z"));
+    fn get_summed_priority_works() {
+        assert_eq!(
+            157,
+            get_summed_priority(vec![
+                "vJrwpWtwJgWrhcsFMMfFFhFp",
+                "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL",
+                "PmmdzqPrVvPwwTWBwg",
+                "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn",
+                "ttgJtRGJQctTZtZT",
+                "CrZsJsPPZsGzwwsLwLmpwMDw",
+            ])
+        )
     }
 }
