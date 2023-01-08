@@ -1,50 +1,76 @@
 use std::{str, u32};
 
 fn split_line(input: &str) -> Vec<String> {
+    let parts = input.split("").collect::<Vec<&str>>();
+
     let len = input.len();
     let midpoint = len / 2;
-    let parts = input.split("").collect::<Vec<&str>>();
+
     let mut output: Vec<String> = Vec::new();
-    let mut tmp = String::from("");
+
+    let mut tmp: Vec<String> = Vec::new();
+
+    // let mut tmp = String::from("");
 
     parts.iter().enumerate().for_each(|(idx, chr)| {
-        let chr = chr.to_string();
-        if chr == "" {
+        let x = chr.to_string();
+        if x == "" {
             return;
         }
-        tmp = format!("{}{}", tmp, chr);
+        tmp.push(x);
+        // tmp = format!("{}{}", tmp, x);
 
         if idx == midpoint {
-            output.push(tmp.clone());
-            tmp = String::from("");
+            let mut to_push = String::from("");
+
+            tmp.iter()
+                .for_each(|s| to_push = format!("{}{}", to_push, s));
+            output.push(to_push);
+            // tmp.clear();
+            // tmp = String::from("");
+            tmp = Vec::new();
         }
     });
-    output.push(tmp);
+    let mut to_push = String::from("");
+    tmp.iter()
+        .for_each(|s| to_push = format!("{}{}", to_push, s));
+    // tmp.iter().for_each(|s| to_push.push(s.chars()[0]));
+    output.push(to_push);
+    // output.push(tmp);
     output
 }
 
-fn identify_common(input: Vec<&str>) -> Result<Vec<&str>, &str> {
+fn identify_common(input: Vec<String>) -> Result<Vec<String>, String> {
     if input.len() != 2 {
-        return Err("input must be vector with two parts");
+        return Err("input must be vector with two parts".to_string());
     }
     if input[0].len() != input[1].len() {
-        return Err("the two elements in the vector must be the same length");
+        return Err("the two elements in the vector must be the same length".to_string());
     }
-    let part1 = input[0].split("").collect::<Vec<&str>>();
-    let part2 = input[1].split("").collect::<Vec<&str>>();
-    let mut in_both: Vec<&str> = Vec::new();
 
-    part1.iter().enumerate().for_each(|(idx, chr)| {
+    let part1 = input[0]
+        .split("")
+        .map(|l| l.to_string())
+        .collect::<Vec<String>>();
+
+    let part2 = input[1]
+        .split("")
+        .map(|l| l.to_string())
+        .collect::<Vec<String>>();
+
+    let mut in_both: Vec<String> = Vec::new();
+
+    part1.iter().enumerate().for_each(|(_, chr)| {
         let a = chr.to_string();
         if a == "" {
             return;
         }
 
-        part2.iter().enumerate().for_each(|(idx2, chr2)| {
+        part2.iter().enumerate().for_each(|(_, chr2)| {
             let b = chr2.to_string();
 
             if a == b {
-                in_both.push(chr);
+                in_both.push(chr.to_string());
             }
         })
     });
@@ -63,8 +89,26 @@ fn get_priority(input: &str) -> u32 {
     }
 }
 
-fn get_summed_priority(input: Vec<&str>) -> u32 {
-    0
+pub fn get_summed_priority(input: Vec<String>) -> u32 {
+    let mut sum: u32 = 0;
+    for line in input {
+        let split = split_line(line.as_str());
+
+        let res = identify_common(split);
+
+        sum += match res {
+            Err(_) => 0,
+            Ok(r) => {
+                let mut tmp_sum = 0;
+                for rr in r {
+                    let pri = get_priority(&rr);
+                    tmp_sum += pri;
+                }
+                tmp_sum
+            }
+        }
+    }
+    sum
 }
 
 #[cfg(test)]
@@ -108,25 +152,31 @@ mod tests {
     #[test]
     fn identify_common_works() {
         assert_eq!(
-            Err("input must be vector with two parts"),
-            identify_common(vec!["abc"])
+            Err("input must be vector with two parts".to_string()),
+            identify_common(vec![String::from("abc")])
         );
 
         assert_eq!(
-            Err("the two elements in the vector must be the same length"),
-            identify_common(vec!["abc", "abcde"])
+            Err("the two elements in the vector must be the same length".to_string()),
+            identify_common(vec![String::from("abc"), String::from("abcde")])
         );
         assert_eq!(
-            Ok(vec!["p"]),
-            identify_common(vec!["vJrwpWtwJgWr", "hcsFMMfFFhFp"])
+            Ok(vec!["p".to_string()]),
+            identify_common(vec![
+                String::from("vJrwpWtwJgWr"),
+                String::from("hcsFMMfFFhFp")
+            ])
         );
         assert_eq!(
-            Ok(vec!["L"]),
-            identify_common(vec!["jqHRNqRjqzjGDLGL", "rsFMfFZSrLrFZsSL"])
+            Ok(vec!["L".to_string()]),
+            identify_common(vec![
+                String::from("jqHRNqRjqzjGDLGL"),
+                String::from("rsFMfFZSrLrFZsSL")
+            ])
         );
         assert_eq!(
-            Ok(vec!["P"]),
-            identify_common(vec!["PmmdzqPrV", "vPwwTWBwg"])
+            Ok(vec!["P".to_string()]),
+            identify_common(vec![String::from("PmmdzqPrV"), String::from("vPwwTWBwg")])
         );
     }
 
@@ -147,12 +197,12 @@ mod tests {
         assert_eq!(
             157,
             get_summed_priority(vec![
-                "vJrwpWtwJgWrhcsFMMfFFhFp",
-                "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL",
-                "PmmdzqPrVvPwwTWBwg",
-                "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn",
-                "ttgJtRGJQctTZtZT",
-                "CrZsJsPPZsGzwwsLwLmpwMDw",
+                "vJrwpWtwJgWrhcsFMMfFFhFp".to_string(),
+                "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL".to_string(),
+                "PmmdzqPrVvPwwTWBwg".to_string(),
+                "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn".to_string(),
+                "ttgJtRGJQctTZtZT".to_string(),
+                "CrZsJsPPZsGzwwsLwLmpwMDw".to_string(),
             ])
         )
     }

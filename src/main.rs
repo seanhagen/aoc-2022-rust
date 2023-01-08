@@ -1,17 +1,21 @@
-// use advent_of_code::RockPaperScissor;
-// use std::fs;
+use std::{
+    fs::File,
+    io::{self, BufRead, BufReader},
+    path::Path,
+};
+
+fn lines_from_file(filename: impl AsRef<Path>) -> io::Result<Vec<String>> {
+    BufReader::new(File::open(filename)?).lines().collect()
+
+    // let file = File::open(filename).expect("no such file");
+    // let buf = BufReader::new(file);
+    // buf.lines()
+    //     .map(|l| l.expect("could not parse line"))
+    //     .collect()
+}
 
 fn main() {
-    // let mut game = RockPaperScissor::new();
-    // let mut game_two = RockPaperScissor::new();
-
-    // let contents = fs::read_to_string("input.txt").expect("unable to read input file");
-
-    // for line in contents.lines() {
-    //     game.add(line);
-    //     game_two.add_correct(line);
-    // }
-
-    // println!("score: {}", game.score());
-    // println!("correct score: {}", game_two.score());
+    let lines = lines_from_file("./input.txt").expect("could not load input file");
+    let sum = advent_of_code::get_summed_priority(lines);
+    println!("sum: {}", sum);
 }
