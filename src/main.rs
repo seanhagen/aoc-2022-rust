@@ -12,4 +12,8 @@ fn main() {
     let lines = lines_from_file("./input.txt").expect("could not load input file");
     let fully_contained = advent_of_code::fully_contained_count(lines);
     println!("fully contained count: {}", fully_contained);
+
+    let lines = lines_from_file("./input.txt").expect("could not load input file");
+    let any_overlap = advent_of_code::any_overlap_count(lines);
+    println!("any overlap count: {}", any_overlap);
 }
