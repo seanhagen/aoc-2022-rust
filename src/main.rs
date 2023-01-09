@@ -15,7 +15,11 @@ fn lines_from_file(filename: impl AsRef<Path>) -> io::Result<Vec<String>> {
 }
 
 fn main() {
+    // let lines = lines_from_file("./input.txt").expect("could not load input file");
+    // let sum = advent_of_code::get_summed_priority(lines);
+    // println!("sum: {}", sum);
+
     let lines = lines_from_file("./input.txt").expect("could not load input file");
-    let sum = advent_of_code::get_summed_priority(lines);
-    println!("sum: {}", sum);
+    let sum = advent_of_code::get_summed_badges(lines);
+    println!("day 2 sum: {}", sum);
 }

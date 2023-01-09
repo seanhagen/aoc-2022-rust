@@ -1,4 +1,4 @@
-use std::{str, u32};
+use std::{collections::HashSet, str, u32};
 
 fn split_line(input: &str) -> Vec<String> {
     let parts = input.split("").collect::<Vec<&str>>();
@@ -111,6 +111,98 @@ pub fn get_summed_priority(input: Vec<String>) -> u32 {
     sum
 }
 
+fn print_type_of<T>(_: &T) {
+    println!("{}", std::any::type_name::<T>())
+}
+
+fn identify_badge(input: Vec<String>) -> Result<String, String> {
+    if input.len() != 3 {
+        return Err("input must be vector with three parts".to_string());
+    }
+
+    let part1: HashSet<char> = HashSet::from_iter(input[0].chars());
+    let part2: HashSet<char> = HashSet::from_iter(input[1].chars());
+    let part3: HashSet<char> = HashSet::from_iter(input[2].chars());
+
+    let in_1_and_2: HashSet<String> = HashSet::from_iter(
+        part1
+            .intersection(&part2)
+            .into_iter()
+            .map(|x| format!("{}", x))
+            .collect::<Vec<String>>()
+            .into_iter(),
+    );
+
+    let in_1_and_3: HashSet<String> = HashSet::from_iter(
+        part1
+            .intersection(&part3)
+            .into_iter()
+            .map(|x| format!("{}", x))
+            .collect::<Vec<String>>()
+            .into_iter(),
+    );
+
+    let in_2_and_3: HashSet<String> = HashSet::from_iter(
+        part2
+            .intersection(&part3)
+            .into_iter()
+            .map(|x| format!("{}", x))
+            .collect::<Vec<String>>()
+            .into_iter(),
+    );
+
+    let first_intersection: HashSet<String> = HashSet::from_iter(
+        in_1_and_2
+            .intersection(&in_1_and_3)
+            .into_iter()
+            .map(|x| format!("{}", x))
+            .collect::<Vec<String>>()
+            .into_iter(),
+    );
+
+    let mut final_intersection: HashSet<String> = HashSet::from_iter(
+        first_intersection
+            .intersection(&in_2_and_3)
+            .into_iter()
+            .map(|x| format!("{}", x))
+            .collect::<Vec<String>>()
+            .into_iter(),
+    );
+
+    if final_intersection.is_empty() {
+        return Err("final intersection empty".to_string());
+    }
+
+    final_intersection
+        .drain()
+        .collect::<Vec<String>>()
+        .first()
+        .ok_or("no values in common".to_string())
+        .cloned()
+}
+
+pub fn get_summed_badges(input: Vec<String>) -> u32 {
+    let mut lines_to_get_badges: Vec<String> = Vec::new();
+    let mut badges: Vec<String> = Vec::new();
+
+    for line in input {
+        lines_to_get_badges.push(line);
+        if lines_to_get_badges.len() == 3 {
+            if let Ok(badge) =
+                identify_badge(lines_to_get_badges.drain(..).collect::<Vec<String>>())
+            {
+                badges.push(badge);
+            }
+        }
+    }
+
+    let mut sum: u32 = 0;
+    for b in badges {
+        sum += get_priority(&b);
+    }
+    sum
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -205,5 +297,47 @@ mod tests {
                 "CrZsJsPPZsGzwwsLwLmpwMDw".to_string(),
             ])
         )
+    }
+
+    #[test]
+    fn identify_badge_works() {
+        assert_eq!(
+            Err("input must be vector with three parts".to_string()),
+            identify_badge(vec!["nope".to_string()])
+        );
+
+        assert_eq!(
+            Err("input must be vector with three parts".to_string()),
+            identify_badge(vec!["nope".to_string(), "not enough".to_string(),])
+        );
+
+        assert_eq!(
+            Err("final intersection empty".to_string()),
+            identify_badge(vec!["a".to_string(), "b".to_string(), "c".to_string()])
+        );
+
+        assert_eq!(
+            Ok("r".to_string()),
+            identify_badge(vec![
+                "vJrwpWtwJgWrhcsFMMfFFhFp".to_string(),
+                "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL".to_string(),
+                "PmmdzqPrVvPwwTWBwg".to_string(),
+            ])
+        );
+    }
+
+    #[test]
+    fn get_summed_badges_works() {
+        assert_eq!(
+            70,
+            get_summed_badges(vec![
+                "vJrwpWtwJgWrhcsFMMfFFhFp".to_string(),
+                "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL".to_string(),
+                "PmmdzqPrVvPwwTWBwg".to_string(),
+                "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn".to_string(),
+                "ttgJtRGJQctTZtZT".to_string(),
+                "CrZsJsPPZsGzwwsLwLmpwMDw".to_string(),
+            ])
+        );
     }
 }
