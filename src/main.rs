@@ -10,10 +10,9 @@ fn lines_from_file(filename: impl AsRef<Path>) -> io::Result<Vec<String>> {
 
 fn main() {
     let lines = lines_from_file("./input.txt").expect("could not load input file");
-    let fully_contained = advent_of_code::fully_contained_count(lines);
-    println!("fully contained count: {}", fully_contained);
 
-    let lines = lines_from_file("./input.txt").expect("could not load input file");
-    let any_overlap = advent_of_code::any_overlap_count(lines);
-    println!("any overlap count: {}", any_overlap);
+    println!(
+        "start of packet: {}",
+        advent_of_code::find_packet_start(lines.first().unwrap().to_string())
+    );
 }
