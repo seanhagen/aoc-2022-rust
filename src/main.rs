@@ -15,4 +15,9 @@ fn main() {
         "start of packet: {}",
         advent_of_code::find_packet_start(lines.first().unwrap().to_string())
     );
+
+    println!(
+        "start of message: {}",
+        advent_of_code::find_message_start(lines.first().unwrap().to_string())
+    );
 }

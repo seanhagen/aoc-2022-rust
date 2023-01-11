@@ -1,19 +1,8 @@
 use std::collections::HashSet;
-// use std::{collections::HashSet, str, str::FromStr, u32};
 
-// #[derive(Debug)]
-// struct Range {
-//     min: u32,
-//     max: u32,
-// }
-
-pub fn find_packet_start(input: String) -> usize {
-    //let buf: [char; 4] = [' ', ' ', ' ', ' '];
-    // let data: Vec<char> = input.chars().into_iter().collect();
-    // println!("data is: \n{:?}", data);
-
+fn find_start(input: String, min_len: usize) -> usize {
     let mut start_idx: usize = 0;
-    let mut end_idx: usize = 4;
+    let mut end_idx: usize = min_len;
     let max_idx: usize = input.len();
 
     while end_idx <= max_idx {
@@ -21,7 +10,7 @@ pub fn find_packet_start(input: String) -> usize {
         let _ = &input[start_idx..end_idx].chars().into_iter().for_each(|c| {
             set.insert(c);
         });
-        if set.len() == 4 {
+        if set.len() == min_len {
             return end_idx;
         }
 
@@ -32,9 +21,45 @@ pub fn find_packet_start(input: String) -> usize {
     end_idx
 }
 
+pub fn find_packet_start(input: String) -> usize {
+    find_start(input, 4)
+}
+
+pub fn find_message_start(input: String) -> usize {
+    find_start(input, 14)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn start_of_message_works() {
+        assert_eq!(
+            19,
+            find_message_start("mjqjpqmgbljsphdztnvjfqwrcgsmlb".to_string())
+        );
+
+        assert_eq!(
+            23,
+            find_message_start("bvwbjplbgvbhsrlpgdmjqwftvncz".to_string())
+        );
+
+        assert_eq!(
+            23,
+            find_message_start("nppdvjthqldpwncqszvftbrmjlhg".to_string())
+        );
+
+        assert_eq!(
+            29,
+            find_message_start("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg".to_string())
+        );
+
+        assert_eq!(
+            26,
+            find_message_start("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw".to_string())
+        );
+    }
 
     #[test]
     fn start_of_marker_works() {
